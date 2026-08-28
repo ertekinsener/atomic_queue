@@ -17,38 +17,38 @@ struct Context {
     int consumers;
 };
 
-template<class T> typename T::ContextType context_of_(int);
-template<class T> NoContext context_of_(long);
-template<class T> using ContextOf = decltype(context_of_<T>(0));
+template<typename T> typename T::ContextType context_of_(int);
+template<typename T> NoContext context_of_(long);
+template<typename T> using ContextOf = decltype(context_of_<T>(0));
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct NoToken {
-    template<class... Args>
+    template<typename... Args>
     ATOMIC_QUEUE_INLINE constexpr NoToken(Args&&...) noexcept {}
 
-    template<class Queue, class T>
+    template<typename Queue, typename T>
     ATOMIC_QUEUE_INLINE static void push(Queue& q, T&& element) noexcept {
         q.push(std::forward<T>(element));
     }
 
-    template<class Queue>
+    template<typename Queue>
     ATOMIC_QUEUE_INLINE static auto pop(Queue& q) noexcept {
         return q.pop();
     }
 };
 
-template<class T> typename T::Producer producer_of_(int);
-template<class T> NoToken producer_of_(long);
-template<class T> using ProducerOf = decltype(producer_of_<T>(1));
+template<typename T> typename T::Producer producer_of_(int);
+template<typename T> NoToken producer_of_(long);
+template<typename T> using ProducerOf = decltype(producer_of_<T>(1));
 
-template<class T> typename T::Consumer consumer_of_(int);
-template<class T> NoToken consumer_of_(long);
-template<class T> using ConsumerOf = decltype(consumer_of_<T>(1));
+template<typename T> typename T::Consumer consumer_of_(int);
+template<typename T> NoToken consumer_of_(long);
+template<typename T> using ConsumerOf = decltype(consumer_of_<T>(1));
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class Queue, size_t Capacity>
+template<typename Queue, size_t Capacity>
 struct CapacityArgAdaptor : Queue {
     ATOMIC_QUEUE_INLINE CapacityArgAdaptor()
         : Queue(Capacity)
@@ -57,7 +57,7 @@ struct CapacityArgAdaptor : Queue {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class Queue>
+template<typename Queue>
 struct RetryDecorator : Queue {
     using T = typename Queue::value_type;
 

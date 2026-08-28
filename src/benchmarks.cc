@@ -77,7 +77,7 @@ struct Params {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Similar to boost::type<>.
-template<class T>
+template<typename T>
 struct Type {
     using type = T;
 };
@@ -89,15 +89,15 @@ using isum_t = long long;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class P>
+template<typename P>
 struct Range {
     P p, q;
     auto begin() const noexcept { return p; }
     auto end() const noexcept { return q; }
 };
 
-template<class P> Range<P> as_range(P p, P q) noexcept { return {p, q}; }
-template<class P> Range<P> as_range(P p, size_t n) noexcept { return {p, p + n}; }
+template<typename P> Range<P> as_range(P p, P q) noexcept { return {p, q}; }
+template<typename P> Range<P> as_range(P p, size_t n) noexcept { return {p, p + n}; }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -122,7 +122,7 @@ ATOMIC_QUEUE_INLINE double to_seconds(icycles_t cycles) noexcept {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class Queue>
+template<typename Queue>
 struct BoostSpScAdapter : Queue {
     using T = typename Queue::value_type;
 
@@ -139,7 +139,7 @@ struct BoostSpScAdapter : Queue {
     }
 };
 
-template<class Queue>
+template<typename Queue>
 struct BoostQueueAdapter : BoostSpScAdapter<Queue> {
     using T = typename Queue::value_type;
 
@@ -153,7 +153,7 @@ struct BoostQueueAdapter : BoostSpScAdapter<Queue> {
 
 using Reclaimer = xenium::reclamation::new_epoch_based<>;
 
-template<class Queue>
+template<typename Queue>
 struct XeniumQueueAdapter : Queue {
     using T = typename Queue::value_type;
 
@@ -165,25 +165,25 @@ struct XeniumQueueAdapter : Queue {
     }
 };
 
-template <class T>
+template <typename T>
 struct region_guard_traits{
     struct region_guard { constexpr region_guard() noexcept = default; };
 };
-template <class T, class... Policies>
+template <typename T, typename... Policies>
 struct region_guard_traits<xenium::michael_scott_queue<T, Policies...>> {
     using region_guard = typename xenium::michael_scott_queue<T, Policies...>::region_guard;
 };
-template <class T, class... Policies>
+template <typename T, typename... Policies>
 struct region_guard_traits<xenium::ramalhete_queue<T, Policies...>> {
     using region_guard = typename xenium::ramalhete_queue<T, Policies...>::region_guard;
 };
 
-template <class T>
+template <typename T>
 using region_guard_t = typename region_guard_traits<T>::region_guard;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class Queue, size_t Capacity>
+template<typename Queue, size_t Capacity>
 struct TbbAdapter : RetryDecorator<Queue> {
     ATOMIC_QUEUE_INLINE TbbAdapter() {
         this->set_capacity(Capacity);
@@ -279,7 +279,7 @@ struct SharedState {
         return threads + n_threads++;
     }
 
-    template<class... Args>
+    template<typename... Args>
     ATOMIC_QUEUE_NOINLINE void create_thread(Args... args) {
         set_default_thread_affinity(hw_thread_ids[n_threads]);
         auto& thr = threads[n_threads];
@@ -311,7 +311,7 @@ struct SharedState {
 struct SharedState2 : SharedState {
     ThreadState threads2[2];
 
-    template<class... Args>
+    template<typename... Args>
     constexpr ATOMIC_QUEUE_INLINE SharedState2(Params const* params, unsigned const (&cpus)[2])
         : SharedState{params, 1, threads2}
     {
@@ -321,7 +321,7 @@ struct SharedState2 : SharedState {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class Queue>
+template<typename Queue>
 ATOMIC_QUEUE_NOINLINE void throughput_producer(SharedState* ctx0, ThreadState* thread0) {
 #if ATOMIC_QUEUE_FULL_THROTTLE
     // Vacate the most desirable i386 registers with the shortest instruction encoding for more frequently accessed objects.
@@ -355,7 +355,7 @@ ATOMIC_QUEUE_NOINLINE void throughput_producer(SharedState* ctx0, ThreadState* t
     thread->times.set(1);
 }
 
-template<class Queue>
+template<typename Queue>
 ATOMIC_QUEUE_NOINLINE void throughput_consumer(SharedState* ctx0, ThreadState* thread0) {
 #if ATOMIC_QUEUE_FULL_THROTTLE
     // Vacate the most desirable i386 registers with the shortest instruction encoding for more frequently accessed objects.
@@ -390,7 +390,7 @@ ATOMIC_QUEUE_NOINLINE void throughput_consumer(SharedState* ctx0, ThreadState* t
     thread->times.set(1);
 }
 
-template<class Queue>
+template<typename Queue>
 ATOMIC_QUEUE_INLINE cycles_t time_throughput_once(Params const* params, int n_threads, bool alternative_placement, ThreadState* consumer_sums) {
     auto ctx = HugePages::instance->create_unique_ptr<SharedState>(params, n_threads, consumer_sums);
     auto queue = HugePages::instance->create_unique_ptr<Queue>(ContextOf<Queue>{n_threads, n_threads});
@@ -417,7 +417,7 @@ ATOMIC_QUEUE_INLINE cycles_t time_throughput_once(Params const* params, int n_th
     return ctx->total_time();
 }
 
-template<class Queue>
+template<typename Queue>
 ATOMIC_QUEUE_NOINLINE void time_throughput(char const* name, Params const* params, int n_thread_min, int n_thread_max) {
     for(auto n_threads = n_thread_min; n_threads <= n_thread_max; ++n_threads) {
         int const n_producer_msg = (params->n_msg + (n_threads - 1)) / n_threads;
@@ -464,13 +464,13 @@ ATOMIC_QUEUE_NOINLINE void time_throughput(char const* name, Params const* param
     }
 }
 
-template<class Queue>
+template<typename Queue>
 ATOMIC_QUEUE_INLINE void time_throughput_mpmc(char const* name, Params const* params, Type<Queue>, int n_thread_min = 1) {
     int const n_thread_max = params->hw_thread_ids.size() / 2;
     time_throughput<Queue>(name, params, n_thread_min, n_thread_max);
 }
 
-template<class Queue>
+template<typename Queue>
 ATOMIC_QUEUE_INLINE void time_throughput_spsc(char const* name, Params const* params, Type<Queue>) {
     time_throughput<Queue>(name, params, 1, 1); // 1 producer and 1 consumer only.
 }
@@ -567,7 +567,7 @@ ATOMIC_QUEUE_NOINLINE void run_throughput_benchmarks(Params const* params) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class Queue>
+template<typename Queue>
 ATOMIC_QUEUE_NOINLINE void ping_pong_receiver(SharedState* ctx0, ThreadState* thread0) {
 #if ATOMIC_QUEUE_FULL_THROTTLE
     // Vacate the most desirable i386 registers with the shortest instruction encoding for more frequently accessed objects.
@@ -600,7 +600,7 @@ ATOMIC_QUEUE_NOINLINE void ping_pong_receiver(SharedState* ctx0, ThreadState* th
     thread->times.set(1);
 }
 
-template<class Queue>
+template<typename Queue>
 ATOMIC_QUEUE_NOINLINE void ping_pong_sender(SharedState* ctx0, ThreadState* thread0) {
 #if ATOMIC_QUEUE_FULL_THROTTLE
     // Vacate the most desirable i386 registers with the shortest instruction encoding for more frequently accessed objects.
@@ -633,7 +633,7 @@ ATOMIC_QUEUE_NOINLINE void ping_pong_sender(SharedState* ctx0, ThreadState* thre
     thread->times.set(1);
 }
 
-template<class Queue>
+template<typename Queue>
 ATOMIC_QUEUE_INLINE cycles_t time_ping_pong_once(Params const* params, unsigned const (&cpus)[2]) {
     auto ctx = HugePages::instance->create_unique_ptr<SharedState2>(params, cpus);
     auto sender0 = ctx->use_this_thread(); // This thread#0 is the sender.
@@ -651,7 +651,7 @@ ATOMIC_QUEUE_INLINE cycles_t time_ping_pong_once(Params const* params, unsigned 
     return ctx->total_time();
 }
 
-template<class Queue>
+template<typename Queue>
 ATOMIC_QUEUE_NOINLINE void time_ping_pong(char const* name, Params const* params) {
     // Select the best times of RUNS runs.
     cycles_t n_cycles_best = CYCLES_MAX;

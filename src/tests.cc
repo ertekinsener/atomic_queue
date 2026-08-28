@@ -101,7 +101,7 @@ namespace {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class T, class State>
+template<typename T, typename State>
 struct test_stateful_allocator : std::allocator<T> {
     State state;
     test_stateful_allocator() = delete;
@@ -114,7 +114,7 @@ struct test_stateful_allocator : std::allocator<T> {
     test_stateful_allocator(const test_stateful_allocator& other) noexcept
         : std::allocator<T>(other), state(other.state) {}
 
-    template<class U>
+    template<typename U>
     test_stateful_allocator(const test_stateful_allocator<U, State>& other) noexcept
         : state(other.state) {}
 
@@ -125,24 +125,24 @@ struct test_stateful_allocator : std::allocator<T> {
 
     ~test_stateful_allocator() noexcept = default;
 
-    template<class U>
+    template<typename U>
     struct rebind {
         using other = test_stateful_allocator<U, State>;
     };
 };
 
 // Required by boost-test
-template<class T, class State>
+template<typename T, typename State>
 std::ostream& operator<<(std::ostream& os, const test_stateful_allocator<T, State>& allocator) {
     return os << allocator.state;
 }
 
-template<class T1, class T2, class State>
+template<typename T1, typename T2, typename State>
 bool operator==(const test_stateful_allocator<T1, State>& lhs, const test_stateful_allocator<T2, State>& rhs) {
     return lhs.state == rhs.state;
 }
 
-template<class T1, class T2, class State>
+template<typename T1, typename T2, typename State>
 bool operator!=(const test_stateful_allocator<T1, State>& lhs, const test_stateful_allocator<T2, State>& rhs) {
     return !(lhs.state == rhs.state);
 }

@@ -70,13 +70,13 @@ struct IndexBits {
 
 struct RemapXor {
     // Each step depends on the previous, a serial chain of ~6 instructions, ~6 cycles.
-    template<class B>
+    template<typename B>
     ATOMIC_QUEUE_SINLINE constexpr unsigned remap(unsigned index, B) noexcept {
         unsigned const mix{(index ^ (index >> B::count)) & B::mask_elem_idx};
         return index ^ mix ^ (mix << B::count);
     }
 
-    template<class B>
+    template<typename B>
     ATOMIC_QUEUE_SINLINE constexpr unsigned remap(unsigned index, unsigned size, B b) noexcept {
         return remap(index & (size - 1), b);
     }
@@ -86,7 +86,7 @@ struct RemapAnd {
     // Faster index remapping with independent parallel computations of index components.
     // The shifts and ands dispatch in parallel, ~8 instructions, ~4 cycles.
     // At least +1% faster throughput benchmark relative to RemapXor.
-    template<class B>
+    template<typename B>
     ATOMIC_QUEUE_SINLINE constexpr unsigned remap(unsigned index, unsigned size, B) noexcept {
         return
             ((index >> B::count) & B::mask_elem_idx) |
@@ -94,7 +94,7 @@ struct RemapAnd {
             (index & (B::mask_hi & (size - 1)));
     }
 
-    template<class B>
+    template<typename B>
     ATOMIC_QUEUE_SINLINE constexpr unsigned remap(unsigned index, B b) noexcept {
         return remap(index, 0, b);
     }
@@ -106,7 +106,7 @@ struct RemapBmi {
     // BMI1 (and, bextr, mov + and) dispatch in parallel, 7 instructions, ~3 cycles.
     // BMI2 (and, bextr, bzhi) dispatch in parallel, 6 instructions, ~3 cycles.
     // At least +1.5% faster throughput benchmark relative to RemapXor.
-    template<class B>
+    template<typename B>
     ATOMIC_QUEUE_SINLINE unsigned remap(unsigned index, unsigned size, B) noexcept {
         static_assert(ATOMIC_QUEUE_FULL_THROTTLE == 1, "Unexpected ATOMIC_QUEUE_FULL_THROTTLE value.");
         unsigned nn  = B::count2;
@@ -126,14 +126,14 @@ struct RemapBmi {
         return new_elem_idx | new_line_idx; // Or with new_line_idx last.
     }
 
-    template<class B>
+    template<typename B>
     ATOMIC_QUEUE_SINLINE unsigned remap(unsigned index, B b) noexcept {
         return remap(index, 0, b);
     }
 };
 #endif // __BMI__
 
-template<class Remap>
+template<typename Remap>
 struct Remap0 : Remap {
     using Remap::remap;
 
@@ -145,7 +145,7 @@ struct Remap0 : Remap {
         return index;
     }
 
-    template<class B, class... A>
+    template<typename B, typename... A>
     ATOMIC_QUEUE_INLINE auto operator()(B bits, A... a) const noexcept {
         return this->remap(a..., bits);
     }
@@ -179,22 +179,22 @@ ATOMIC_QUEUE_SINLINE constexpr unsigned remap(unsigned index, unsigned size, Ind
 // a |= a >> 16;
 // ++a;
 
-template<class T>
+template<typename T>
 ATOMIC_QUEUE_SINLINE constexpr T decrement(T x) noexcept {
     return x - 1;
 }
 
-template<class T>
+template<typename T>
 ATOMIC_QUEUE_SINLINE constexpr T increment(T x) noexcept {
     return x + 1;
 }
 
-template<class T>
+template<typename T>
 ATOMIC_QUEUE_SINLINE constexpr T or_equal(T x, unsigned u) noexcept {
     return x | x >> u;
 }
 
-template<class T, class... Args>
+template<typename T, typename... Args>
 ATOMIC_QUEUE_SINLINE constexpr T or_equal(T x, unsigned u, Args... rest) noexcept {
     return or_equal(or_equal(x, u), rest...);
 }
@@ -209,7 +209,7 @@ ATOMIC_QUEUE_SINLINE constexpr uint64_t round_up_to_power_of_2(uint64_t a) noexc
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class T>
+template<typename T>
 constexpr T nil() noexcept {
 #if __cpp_lib_atomic_is_always_lock_free // Better compile-time error message requires C++17.
     static_assert(std::atomic<T>::is_always_lock_free, "Queue element type T is not atomic. Use AtomicQueue2/AtomicQueueB2 for such element types.");
@@ -217,20 +217,20 @@ constexpr T nil() noexcept {
     return {};
 }
 
-template<class T>
+template<typename T>
 ATOMIC_QUEUE_SINLINE void destroy_n(T* ATOMIC_QUEUE_RESTRICT p, unsigned n) noexcept {
     for(auto q = p + n; p != q;)
         (p++)->~T();
 }
 
-template<class T>
+template<typename T>
 ATOMIC_QUEUE_SINLINE void swap_relaxed(std::atomic<T>& a, std::atomic<T>& b) noexcept {
     auto a2 = a.load(X);
     a.store(b.load(X), X);
     b.store(a2, X);
 }
 
-template<class T>
+template<typename T>
 ATOMIC_QUEUE_SINLINE void copy_relaxed(std::atomic<T>& a, std::atomic<T> const& b) noexcept {
     a.store(b.load(X), X);
 }
@@ -253,7 +253,7 @@ enum StateE : State {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class Derived>
+template<typename Derived>
 class AtomicQueueCommon {
     ATOMIC_QUEUE_INLINE constexpr auto& downcast() noexcept { return static_cast<Derived&>(*this); }
     ATOMIC_QUEUE_INLINE constexpr auto& downcast() const noexcept { return static_cast<Derived const&>(*this); }
@@ -288,7 +288,7 @@ protected:
         details::swap_relaxed(tail_, b.tail_);
     }
 
-    template<class T>
+    template<typename T>
     ATOMIC_QUEUE_SINLINE T do_pop(std::atomic<T>* ATOMIC_QUEUE_RESTRICT elements, unsigned index) noexcept {
         constexpr T NIL = Derived::nil_;
         T element;
@@ -318,7 +318,7 @@ protected:
         return element;
     }
 
-    template<class T>
+    template<typename T>
     ATOMIC_QUEUE_SINLINE void do_push(T element, std::atomic<T>* ATOMIC_QUEUE_RESTRICT elements, unsigned index) noexcept {
         constexpr T NIL = Derived::nil_;
         assert(element != NIL);
@@ -339,7 +339,7 @@ protected:
         }
     }
 
-    template<class T>
+    template<typename T>
     ATOMIC_QUEUE_SINLINE T do_pop(std::atomic<State>* ATOMIC_QUEUE_RESTRICT states, T* ATOMIC_QUEUE_RESTRICT elements, unsigned index) noexcept {
         auto& state = states[index];
 
@@ -364,7 +364,7 @@ protected:
         return element;
     }
 
-    template<class U, class T>
+    template<typename U, typename T>
     ATOMIC_QUEUE_SINLINE void do_push(U&& element, std::atomic<State>* ATOMIC_QUEUE_RESTRICT states, T* ATOMIC_QUEUE_RESTRICT elements, unsigned index) noexcept {
         auto& state = states[index];
 
@@ -389,7 +389,7 @@ protected:
     }
 
 public:
-    template<class T>
+    template<typename T>
     ATOMIC_QUEUE_INLINE bool try_push(T&& element) noexcept {
         auto head = head_.load(X);
         if(Derived::spsc_) {
@@ -408,7 +408,7 @@ public:
         return true;
     }
 
-    template<class T>
+    template<typename T>
     ATOMIC_QUEUE_INLINE bool try_pop(T& element) noexcept {
         auto tail = tail_.load(X);
         if(Derived::spsc_) {
@@ -427,7 +427,7 @@ public:
         return true;
     }
 
-    template<class T>
+    template<typename T>
     ATOMIC_QUEUE_INLINE void push(T&& element) noexcept {
         unsigned head;
         if(Derived::spsc_) {
@@ -479,7 +479,7 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class T, unsigned SIZE, T NIL = details::nil<T>(), bool MINIMIZE_CONTENTION = true, bool MAXIMIZE_THROUGHPUT = true, bool TOTAL_ORDER = false, bool SPSC = false>
+template<typename T, unsigned SIZE, T NIL = details::nil<T>(), bool MINIMIZE_CONTENTION = true, bool MAXIMIZE_THROUGHPUT = true, bool TOTAL_ORDER = false, bool SPSC = false>
 class AtomicQueue : public AtomicQueueCommon<AtomicQueue<T, SIZE, NIL, MINIMIZE_CONTENTION, MAXIMIZE_THROUGHPUT, TOTAL_ORDER, SPSC>> {
     using Base = AtomicQueueCommon<AtomicQueue<T, SIZE, NIL, MINIMIZE_CONTENTION, MAXIMIZE_THROUGHPUT, TOTAL_ORDER, SPSC>>;
     friend Base;
@@ -519,7 +519,7 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class T, unsigned SIZE, bool MINIMIZE_CONTENTION = true, bool MAXIMIZE_THROUGHPUT = true, bool TOTAL_ORDER = false, bool SPSC = false>
+template<typename T, unsigned SIZE, bool MINIMIZE_CONTENTION = true, bool MAXIMIZE_THROUGHPUT = true, bool TOTAL_ORDER = false, bool SPSC = false>
 class AtomicQueue2 : public AtomicQueueCommon<AtomicQueue2<T, SIZE, MINIMIZE_CONTENTION, MAXIMIZE_THROUGHPUT, TOTAL_ORDER, SPSC>> {
     using Base = AtomicQueueCommon<AtomicQueue2<T, SIZE, MINIMIZE_CONTENTION, MAXIMIZE_THROUGHPUT, TOTAL_ORDER, SPSC>>;
     friend Base;
@@ -539,7 +539,7 @@ class AtomicQueue2 : public AtomicQueueCommon<AtomicQueue2<T, SIZE, MINIMIZE_CON
         return Base::do_pop(states_, elements_, index);
     }
 
-    template<class U>
+    template<typename U>
     ATOMIC_QUEUE_INLINE void do_push(U&& element, unsigned head) noexcept {
         auto index = remap(head, size_, B{});
         Base::do_push(std::forward<U>(element), states_, elements_, index);
@@ -555,7 +555,7 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class T, class A = std::allocator<T>, T NIL = details::nil<T>(), bool MAXIMIZE_THROUGHPUT = true, bool TOTAL_ORDER = false, bool SPSC = false>
+template<typename T, typename A = std::allocator<T>, T NIL = details::nil<T>(), bool MAXIMIZE_THROUGHPUT = true, bool TOTAL_ORDER = false, bool SPSC = false>
 class AtomicQueueB : private std::allocator_traits<A>::template rebind_alloc<std::atomic<T>>,
                      public AtomicQueueCommon<AtomicQueueB<T, A, NIL, MAXIMIZE_THROUGHPUT, TOTAL_ORDER, SPSC>> {
     using AllocatorElements = typename std::allocator_traits<A>::template rebind_alloc<std::atomic<T>>;
@@ -648,7 +648,7 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class T, class A = std::allocator<T>, bool MAXIMIZE_THROUGHPUT = true, bool TOTAL_ORDER = false, bool SPSC = false>
+template<typename T, typename A = std::allocator<T>, bool MAXIMIZE_THROUGHPUT = true, bool TOTAL_ORDER = false, bool SPSC = false>
 class AtomicQueueB2 : private std::allocator_traits<A>::template rebind_alloc<unsigned char>,
                       public AtomicQueueCommon<AtomicQueueB2<T, A, MAXIMIZE_THROUGHPUT, TOTAL_ORDER, SPSC>> {
     using StorageAllocator = typename std::allocator_traits<A>::template rebind_alloc<unsigned char>;
@@ -683,20 +683,20 @@ class AtomicQueueB2 : private std::allocator_traits<A>::template rebind_alloc<un
         return Base::do_pop(states_, elements_, index);
     }
 
-    template<class U>
+    template<typename U>
     ATOMIC_QUEUE_INLINE void do_push(U&& element, unsigned head) noexcept {
         auto index = remap(head, size_, B{});
         Base::do_push(std::forward<U>(element), states_, elements_, index);
     }
 
-    template<class U>
+    template<typename U>
     U* allocate_() {
         U* p = reinterpret_cast<U*>(StorageAllocator::allocate(size_ * sizeof(U)));
         assert(is_suitably_aligned(p)); // Allocated storage must be suitably aligned for U.
         return p;
     }
 
-    template<class U>
+    template<typename U>
     void deallocate_(U* p) noexcept {
         StorageAllocator::deallocate(reinterpret_cast<unsigned char*>(p), size_ * sizeof(U)); // TODO: This must be noexcept, static_assert that.
     }

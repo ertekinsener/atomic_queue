@@ -17,7 +17,7 @@ namespace atomic_queue {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class T, unsigned Capacity>
+template<typename T, unsigned Capacity>
 struct MoodyCamelQueue : moodycamel::ConcurrentQueue<T> {
     using producer_token_t = typename moodycamel::ConcurrentQueue<T>::producer_token_t;
     using consumer_token_t = typename moodycamel::ConcurrentQueue<T>::consumer_token_t;
@@ -55,7 +55,7 @@ struct MoodyCamelQueue : moodycamel::ConcurrentQueue<T> {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class T, unsigned Capacity>
+template<typename T, unsigned Capacity>
 struct MoodyCamelReaderWriterQueue : moodycamel::ReaderWriterQueue<T> {
     ATOMIC_QUEUE_INLINE MoodyCamelReaderWriterQueue()
         : moodycamel::ReaderWriterQueue<T>(Capacity)

@@ -16,7 +16,7 @@ namespace atomic_queue {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class M>
+template<typename M>
 struct ScopedLockType {
     using type = typename M::scoped_lock;
 };
@@ -28,7 +28,7 @@ struct ScopedLockType<std::mutex> {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class T, class Mutex, unsigned SIZE, bool MINIMIZE_CONTENTION>
+template<typename T, typename Mutex, unsigned SIZE, bool MINIMIZE_CONTENTION>
 class AtomicQueueMutexT {
     static constexpr unsigned size_ = MINIMIZE_CONTENTION ? details::round_up_to_power_of_2(SIZE) : SIZE;
 
@@ -45,7 +45,7 @@ class AtomicQueueMutexT {
 public:
     using value_type = T;
 
-    template<class U>
+    template<typename U>
     ATOMIC_QUEUE_INLINE bool try_push(U&& element) noexcept {
         ScopedLock lock(mutex_);
         if(ATOMIC_QUEUE_LIKELY(head_ - tail_ < size_)) {
@@ -79,13 +79,13 @@ public:
     }
 };
 
-template<class T, unsigned SIZE, class Mutex, bool MINIMIZE_CONTENTION = true>
+template<typename T, unsigned SIZE, typename Mutex, bool MINIMIZE_CONTENTION = true>
 using AtomicQueueMutex = AtomicQueueMutexT<T, Mutex, SIZE, MINIMIZE_CONTENTION>;
 
-template<class T, unsigned SIZE, bool MINIMIZE_CONTENTION = true>
+template<typename T, unsigned SIZE, bool MINIMIZE_CONTENTION = true>
 using AtomicQueueSpinlock = AtomicQueueMutexT<T, Spinlock, SIZE, MINIMIZE_CONTENTION>;
 
-// template<class T, unsigned SIZE, bool MINIMIZE_CONTENTION = true>
+// template<typename T, unsigned SIZE, bool MINIMIZE_CONTENTION = true>
 // using AtomicQueueSpinlockHle = AtomicQueueMutexT<T, SpinlockHle, SIZE, MINIMIZE_CONTENTION>;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

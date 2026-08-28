@@ -28,13 +28,13 @@ public:
     static HugePages* instance;
 
     struct Deleter {
-        template<class T>
+        template<typename T>
         ATOMIC_QUEUE_INLINE void operator()(T* p) const {
             instance->destroy(p);
         }
     };
 
-    template<class T>
+    template<typename T>
     using unique_ptr = std::unique_ptr<T, Deleter>;
 
     enum Type { PAGE_DEFAULT = 0, PAGE_2MB = 21, PAGE_1GB = 30 };
@@ -83,22 +83,22 @@ public:
         return cur_ - beg_;
     }
 
-    template<class T, class... Args>
+    template<typename T, typename... Args>
     ATOMIC_QUEUE_INLINE T* create(Args&&... args) {
         return new(this->allocate(sizeof(T))) T{std::forward<Args>(args)...};
     }
 
-    template<class T, class... Args>
+    template<typename T, typename... Args>
     ATOMIC_QUEUE_INLINE unique_ptr<T> create_unique_ptr(Args&&... args) {
         return unique_ptr<T>{create<T>(std::forward<Args>(args)...)};
     }
 
-    template<class T, class... Args>
+    template<typename T, typename... Args>
     ATOMIC_QUEUE_INLINE unique_ptr<T> create_unique_ptr(NoContext, Args&&... args) {
         return unique_ptr<T>{create<T>(std::forward<Args>(args)...)};
     }
 
-    template<class T>
+    template<typename T>
     ATOMIC_QUEUE_INLINE void destroy(T* p) {
         void* q = p;
         p->~T();
@@ -116,15 +116,15 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-template<class T>
+template<typename T>
 struct HugePageAllocator { // A stateless allocator.
-    template<class U> struct rebind { using other = HugePageAllocator<U>; };
+    template<typename U> struct rebind { using other = HugePageAllocator<U>; };
 
     using value_type = T;
 
     HugePageAllocator() noexcept = default;
 
-    template<class U>
+    template<typename U>
     ATOMIC_QUEUE_INLINE HugePageAllocator(HugePageAllocator<U>) noexcept
     {}
 
@@ -138,12 +138,12 @@ struct HugePageAllocator { // A stateless allocator.
         HugePages::instance->deallocate(p, n * sizeof(T));
     }
 
-    template<class U>
+    template<typename U>
     bool operator==(HugePageAllocator<U>) const {
         return true;
     }
 
-    template<class U>
+    template<typename U>
     bool operator!=(HugePageAllocator<U>) const {
         return false;
     }

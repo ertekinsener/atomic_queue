@@ -181,23 +181,23 @@ ATOMIC_QUEUE_SINLINE constexpr unsigned long long as_unsigned(unsigned long long
 ATOMIC_QUEUE_SINLINE constexpr unsigned long long as_unsigned(long long c) noexcept { return c; }
 
 // Do not allow integral promotion, numeric conversions or any other conversions for arguments of as_signed and as_unsigned.
-template<class T> T as_signed(T) = delete;
-template<class T> T as_unsigned(T) = delete;
+template<typename T> T as_signed(T) = delete;
+template<typename T> T as_unsigned(T) = delete;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // std::min/max reference parameters may require spilling registers to stack in order to make the value addressable.
 // These take by value only, with no implicit conversions.
-template<class T> ATOMIC_QUEUE_SINLINE constexpr T min_value(T a, T b) noexcept { return b < a ? b : a; }
-template<class T> ATOMIC_QUEUE_SINLINE constexpr T max_value(T a, T b) noexcept { return a < b ? b : a; }
+template<typename T> ATOMIC_QUEUE_SINLINE constexpr T min_value(T a, T b) noexcept { return b < a ? b : a; }
+template<typename T> ATOMIC_QUEUE_SINLINE constexpr T max_value(T a, T b) noexcept { return a < b ? b : a; }
 
 // Let the caller resolve any ambiguity.
-template<class T, class U> T min_value(T, U) = delete;
-template<class T, class U> T max_value(T, U) = delete;
+template<typename T, typename U> T min_value(T, U) = delete;
+template<typename T, typename U> T max_value(T, U) = delete;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class T>
+template<typename T>
 ATOMIC_QUEUE_SINLINE constexpr bool is_suitably_aligned(T* p) noexcept {
     return !(reinterpret_cast<std::uintptr_t>(p) % alignof(T));
 }
@@ -205,7 +205,7 @@ ATOMIC_QUEUE_SINLINE constexpr bool is_suitably_aligned(T* p) noexcept {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct NoContext {
-    template<class... Args>
+    template<typename... Args>
     ATOMIC_QUEUE_INLINE constexpr NoContext(Args&&...) noexcept {}
 };
 
