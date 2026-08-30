@@ -3,6 +3,7 @@
 
 #include "defs.h"
 #include <cstddef>
+#include <bit>
 namespace atomic_queue::details
 {
     using std::uint32_t;
@@ -10,50 +11,12 @@ namespace atomic_queue::details
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    template <size_t elements_per_cache_line>
+    template <std::size_t ElementsPerCacheLine>
     struct GetCacheLineIndexBits
     {
-        static int constexpr value = 0;
-    };
-    template <>
-    struct GetCacheLineIndexBits<256>
-    {
-        static int constexpr value = 8;
-    };
-    template <>
-    struct GetCacheLineIndexBits<128>
-    {
-        static int constexpr value = 7;
-    };
-    template <>
-    struct GetCacheLineIndexBits<64>
-    {
-        static int constexpr value = 6;
-    };
-    template <>
-    struct GetCacheLineIndexBits<32>
-    {
-        static int constexpr value = 5;
-    };
-    template <>
-    struct GetCacheLineIndexBits<16>
-    {
-        static int constexpr value = 4;
-    };
-    template <>
-    struct GetCacheLineIndexBits<8>
-    {
-        static int constexpr value = 3;
-    };
-    template <>
-    struct GetCacheLineIndexBits<4>
-    {
-        static int constexpr value = 2;
-    };
-    template <>
-    struct GetCacheLineIndexBits<2>
-    {
-        static int constexpr value = 1;
+        static constexpr int value = std::has_single_bit(ElementsPerCacheLine)
+                                         ? static_cast<int>(std::bit_width(ElementsPerCacheLine) - 1)
+                                         : 0;
     };
 
     template <bool minimize_contention, unsigned array_size, size_t elements_per_cache_line>
@@ -69,6 +32,21 @@ namespace atomic_queue::details
     {
         static int constexpr value = 0;
     };
+
+    //     #include <cstddef>
+
+    // template <bool MinimizeContention, unsigned ArraySize, std::size_t ElementsPerCacheLine>
+    // inline constexpr int GetIndexShuffleBits_v = []() constexpr {
+    //     if constexpr (!MinimizeContention) {
+    //         return 0;
+    //     } else {
+    //         constexpr int bits = GetCacheLineIndexBits_v<ElementsPerCacheLine>;
+    //         // 32-bit taşmasını (UB) önlemek için 1ULL kullanılır
+    //         constexpr std::size_t min_size = (bits * 2 < 64) ? (1ULL << (bits * 2)) : 0;
+
+    //         return (min_size != 0 && ArraySize >= min_size) ? bits : 0;
+    //     }
+    // }();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Multiple writers/readers contend on the same cache line when storing/loading elements at
