@@ -21,9 +21,9 @@ using namespace ::atomic_queue;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-enum { N_STRESS_MSG = 1000000 };
-enum { STOP_MSG = -1 };
-enum { CAPACITY = 4096 };
+constexpr unsigned N_STRESS_MSG = 1'000'000u;
+constexpr unsigned STOP_MSG = static_cast<unsigned>(-1);
+constexpr unsigned CAPACITY = 4096u;
 
 using stress_queues = boost::mpl::list<
     AtomicQueue<unsigned, CAPACITY>,
@@ -49,10 +49,8 @@ using stress_queues = boost::mpl::list<
 
 // Check that all push'es are ever pop'ed once with multiple producer and multiple consumers.
 BOOST_AUTO_TEST_CASE_TEMPLATE(stress, Queue, stress_queues) {
-    enum {
-        PRODUCERS = Queue::is_spsc() ? 1 : 3,
-        CONSUMERS = Queue::is_spsc() ? 1 : 3
-    };
+    constexpr int PRODUCERS = Queue::is_spsc() ? 1 : 3;
+    constexpr int CONSUMERS = Queue::is_spsc() ? 1 : 3;
     using T = typename Queue::value_type;
 
     Queue q;

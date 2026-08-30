@@ -171,7 +171,7 @@ ldflags.clang.sanitize2 := ${ldflags.clang.debug} -fsanitize=undefined,address
 ldflags.clang := -g -stdlib=libstdc++ ${ldflags.clang.${BUILD}}
 
 # Additional CPPFLAGS, CXXFLAGS, LDLIBS, LDFLAGS can come from the command line, e.g. make CPPFLAGS='-I<my-include-dir>', or from environment variables.
-cxxflags := -std=c++14 -pthread -g $(call toolset_flags,cxxflags) ${cxxflags.${uname_m}} ${CXXFLAGS}
+cxxflags := -std=c++20 -pthread -g $(call toolset_flags,cxxflags) ${cxxflags.${uname_m}} ${CXXFLAGS}
 cppflags := -Iinclude ${CPPFLAGS}
 ldflags := -pthread $(call toolset_flags,ldflags) -Wl,-z,norelro,-z,now,-z,max-page-size=0x200000,-z,common-page-size=0x200000,-z,separate-code,--build-id=none ${LDFLAGS}
 ldlibs := -lrt ${LDLIBS}
