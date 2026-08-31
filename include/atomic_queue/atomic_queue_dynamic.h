@@ -175,7 +175,7 @@ namespace atomic_queue
         AtomicQueueB2(unsigned size, A const &allocator = A{})
             : StorageAllocator(allocator), size_(max_value(details::round_up_to_power_of_2(size), 1u << (SHUFFLE_BITS * 2))), states_(allocate_<AtomicState>()), elements_(allocate_<T>())
         {
-            std::uninitialized_fill_n(states_, size_, EMPTY);
+            std::uninitialized_fill_n(states_, size_, State::EMPTY);
             A a = get_allocator();
             assert(a == allocator); // The standard requires the original and rebound allocators to manage the same state.
             for (auto p = elements_, q = elements_ + size_; p < q; ++p)
