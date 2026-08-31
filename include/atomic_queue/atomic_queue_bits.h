@@ -19,34 +19,27 @@ namespace atomic_queue::details
                                          : 0;
     };
 
-    template <bool minimize_contention, unsigned array_size, size_t elements_per_cache_line>
+    template <bool MinimizeContention, unsigned ArraySize, std::size_t ElementsPerCacheLine>
     struct GetIndexShuffleBits
     {
-        static int constexpr bits = GetCacheLineIndexBits<elements_per_cache_line>::value;
-        static unsigned constexpr min_size = 1u << (bits * 2);
-        static int constexpr value = array_size < min_size ? 0 : bits;
+        static constexpr int value = []() constexpr -> int
+        {
+            if constexpr (!MinimizeContention)
+            {
+                return 0;
+            }
+            else
+            {
+                constexpr int bits = GetCacheLineIndexBits<ElementsPerCacheLine>::value;
+
+                // max_shift dışarı taşmaz, lambda içinde lokal kalır
+                constexpr std::size_t max_shift = sizeof(std::size_t) * 8;
+                constexpr std::size_t min_size = (bits * 2 < max_shift) ? (std::size_t{1} << (bits * 2)) : 0;
+
+                return (min_size != 0 && ArraySize >= min_size) ? bits : 0;
+            }
+        }();
     };
-
-    template <unsigned array_size, size_t elements_per_cache_line>
-    struct GetIndexShuffleBits<false, array_size, elements_per_cache_line>
-    {
-        static int constexpr value = 0;
-    };
-
-    //     #include <cstddef>
-
-    // template <bool MinimizeContention, unsigned ArraySize, std::size_t ElementsPerCacheLine>
-    // inline constexpr int GetIndexShuffleBits_v = []() constexpr {
-    //     if constexpr (!MinimizeContention) {
-    //         return 0;
-    //     } else {
-    //         constexpr int bits = GetCacheLineIndexBits_v<ElementsPerCacheLine>;
-    //         // 32-bit taşmasını (UB) önlemek için 1ULL kullanılır
-    //         constexpr std::size_t min_size = (bits * 2 < 64) ? (1ULL << (bits * 2)) : 0;
-
-    //         return (min_size != 0 && ArraySize >= min_size) ? bits : 0;
-    //     }
-    // }();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Multiple writers/readers contend on the same cache line when storing/loading elements at
