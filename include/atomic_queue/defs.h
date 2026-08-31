@@ -2,12 +2,14 @@
 #ifndef ATOMIC_QUEUE_DEFS_H_INCLUDED
 #define ATOMIC_QUEUE_DEFS_H_INCLUDED
 
-// Copyright (c) 2019 Maxim Egorushkin. MIT License. See the full licence in file LICENSE.
+// Copyright (c) 2019 Maxim Egorushkin. MIT License. See the full licence in
+// file LICENSE.
 
 #include <atomic>
 #include <cstdint>
 
-#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || \
+    defined(_M_IX86)
 #include <emmintrin.h>
 #include <immintrin.h>
 #endif
@@ -22,13 +24,13 @@
 #define ATOMIC_QUEUE_RESTRICT __restrict__
 
 #ifndef __clang__
-#   define ATOMIC_QUEUE_NOINLINE __attribute__((noinline,noclone))
+#define ATOMIC_QUEUE_NOINLINE __attribute__((noinline, noclone))
 #else
-#   define ATOMIC_QUEUE_NOINLINE __attribute__((noinline))
+#define ATOMIC_QUEUE_NOINLINE __attribute__((noinline))
 #endif
 
 #if !defined(ATOMIC_QUEUE_FULL_THROTTLE) && defined(__x86_64__)
-#   define ATOMIC_QUEUE_FULL_THROTTLE 1
+#define ATOMIC_QUEUE_FULL_THROTTLE 1
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -41,9 +43,9 @@
 #define ATOMIC_QUEUE_INLINE inline
 
 #ifdef _MSC_VER
-#   define ATOMIC_QUEUE_RESTRICT __restrict
+#define ATOMIC_QUEUE_RESTRICT __restrict
 #else
-#   define ATOMIC_QUEUE_RESTRICT
+#define ATOMIC_QUEUE_RESTRICT
 #endif
 
 #endif
@@ -52,40 +54,42 @@
 
 #define ATOMIC_QUEUE_SINLINE static ATOMIC_QUEUE_INLINE
 
-// In #if, #elif any identifier, which is not literal, non defined using #define directive, evaluates to 0.
+// In #if, #elif any identifier, which is not literal, non defined using #define
+// directive, evaluates to 0.
 #ifndef ATOMIC_QUEUE_FULL_THROTTLE
 // Make it expand to 0 unconditionally.
-#   define ATOMIC_QUEUE_FULL_THROTTLE 0
+#define ATOMIC_QUEUE_FULL_THROTTLE 0
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #if ATOMIC_QUEUE_FULL_THROTTLE
-#   define ATOMIC_QUEUE_ORDER(a, b)  asm(""::"r"(a),"r"(b))
-#   define ATOMIC_QUEUE_REG(a)       asm("":"+r"(a))
-#   define ATOMIC_QUEUE_LEAN_REG(a)  asm("":"+R"(a))
+#define ATOMIC_QUEUE_ORDER(a, b) asm("" ::"r"(a), "r"(b))
+#define ATOMIC_QUEUE_REG(a) asm("" : "+r"(a))
+#define ATOMIC_QUEUE_LEAN_REG(a) asm("" : "+R"(a))
 #else
-#   define ATOMIC_QUEUE_ORDER(a, b)
-#   define ATOMIC_QUEUE_REG(a)
-#   define ATOMIC_QUEUE_LEAN_REG(a)
+#define ATOMIC_QUEUE_ORDER(a, b)
+#define ATOMIC_QUEUE_REG(a)
+#define ATOMIC_QUEUE_LEAN_REG(a)
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Define a CPU-specific spin_loop_pause function.
 
 // Notes from https://gcc.gnu.org/onlinedocs/gcc/Basic-Asm.html
-// * For the C++ language, asm is a standard keyword, but __asm__ can be used for code compiled with -fno-asm.
-// * The optional volatile qualifier has no effect. All basic [with no arguments] asm blocks are implicitly volatile.
+// * For the C++ language, asm is a standard keyword, but __asm__ can be used
+// for code compiled with -fno-asm.
+// * The optional volatile qualifier has no effect. All basic [with no
+// arguments] asm blocks are implicitly volatile.
 
 namespace atomic_queue {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || \
+    defined(_M_IX86)
 constexpr int CACHE_LINE_SIZE = 64;
-ATOMIC_QUEUE_SINLINE void spin_loop_pause() noexcept {
-    _mm_pause();
-}
+ATOMIC_QUEUE_SINLINE void spin_loop_pause() noexcept { _mm_pause(); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -96,22 +100,17 @@ constexpr int CACHE_LINE_SIZE = 128;
 constexpr int CACHE_LINE_SIZE = 64;
 #endif
 ATOMIC_QUEUE_SINLINE void spin_loop_pause() noexcept {
-#if (defined(__ARM_ARCH_6K__) || \
-     defined(__ARM_ARCH_6Z__) || \
-     defined(__ARM_ARCH_6ZK__) || \
-     defined(__ARM_ARCH_6T2__) || \
-     defined(__ARM_ARCH_7__) || \
-     defined(__ARM_ARCH_7A__) || \
-     defined(__ARM_ARCH_7R__) || \
-     defined(__ARM_ARCH_7M__) || \
-     defined(__ARM_ARCH_7S__) || \
-     defined(__ARM_ARCH_8A__) || \
+#if (defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6Z__) ||   \
+     defined(__ARM_ARCH_6ZK__) || defined(__ARM_ARCH_6T2__) || \
+     defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) ||    \
+     defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) ||   \
+     defined(__ARM_ARCH_7S__) || defined(__ARM_ARCH_8A__) ||   \
      defined(__aarch64__))
-    asm("yield");
+  asm("yield");
 #elif defined(_M_ARM64)
-    __yield();
+  __yield();
 #else
-    asm("nop");
+  asm("nop");
 #endif
 }
 
@@ -120,21 +119,22 @@ ATOMIC_QUEUE_SINLINE void spin_loop_pause() noexcept {
 #elif defined(__ppc64__) || defined(__powerpc64__)
 constexpr int CACHE_LINE_SIZE = 128;
 ATOMIC_QUEUE_SINLINE void spin_loop_pause() noexcept {
-    asm("or 31,31,31 # very low priority");
+  asm("or 31,31,31 # very low priority");
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #elif defined(__s390x__)
 constexpr int CACHE_LINE_SIZE = 256;
-ATOMIC_QUEUE_SINLINE void spin_loop_pause() noexcept {} // TODO: Find the right instruction to use here, if any.
+ATOMIC_QUEUE_SINLINE void spin_loop_pause() noexcept {
+}  // TODO: Find the right instruction to use here, if any.
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #elif defined(__riscv)
 constexpr int CACHE_LINE_SIZE = 64;
 ATOMIC_QUEUE_SINLINE void spin_loop_pause() noexcept {
-    asm(".insn i 0x0F, 0, x0, x0, 0x010");
+  asm(".insn i 0x0F, 0, x0, x0, 0x010");
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -142,7 +142,7 @@ ATOMIC_QUEUE_SINLINE void spin_loop_pause() noexcept {
 #elif defined(__loongarch__)
 constexpr int CACHE_LINE_SIZE = 64;
 ATOMIC_QUEUE_SINLINE void spin_loop_pause() noexcept {
-    asm("nop \n nop \n nop \n nop \n nop \n nop \n nop \n nop");
+  asm("nop \n nop \n nop \n nop \n nop \n nop \n nop \n nop");
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -150,12 +150,15 @@ ATOMIC_QUEUE_SINLINE void spin_loop_pause() noexcept {
 #else
 
 #ifdef _MSC_VER
-#   pragma message("Unknown CPU architecture. Using L1 cache line size of 64 bytes and no spinloop pause instruction.")
+#pragma message( \
+    "Unknown CPU architecture. Using L1 cache line size of 64 bytes and no spinloop pause instruction.")
 #else
-#   warning "Unknown CPU architecture. Using L1 cache line size of 64 bytes and no spinloop pause instruction."
+#warning \
+    "Unknown CPU architecture. Using L1 cache line size of 64 bytes and no spinloop pause instruction."
 #endif
 
-constexpr int CACHE_LINE_SIZE = 64; // TODO: Review that this is the correct value.
+constexpr int CACHE_LINE_SIZE =
+    64;  // TODO: Review that this is the correct value.
 ATOMIC_QUEUE_SINLINE void spin_loop_pause() noexcept {}
 
 #endif
@@ -170,49 +173,76 @@ auto constexpr AR = std::memory_order_acq_rel;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-ATOMIC_QUEUE_SINLINE constexpr int       as_signed(unsigned c) noexcept { return c; }
-ATOMIC_QUEUE_SINLINE constexpr int       as_signed(int c) noexcept { return c; }
-ATOMIC_QUEUE_SINLINE constexpr long long as_signed(unsigned long long c) noexcept { return c; }
-ATOMIC_QUEUE_SINLINE constexpr long long as_signed(long long c) noexcept { return c; }
+ATOMIC_QUEUE_SINLINE constexpr int as_signed(unsigned c) noexcept { return c; }
+ATOMIC_QUEUE_SINLINE constexpr int as_signed(int c) noexcept { return c; }
+ATOMIC_QUEUE_SINLINE constexpr long long as_signed(
+    unsigned long long c) noexcept {
+  return c;
+}
+ATOMIC_QUEUE_SINLINE constexpr long long as_signed(long long c) noexcept {
+  return c;
+}
 
-ATOMIC_QUEUE_SINLINE constexpr unsigned           as_unsigned(unsigned c) noexcept { return c; }
-ATOMIC_QUEUE_SINLINE constexpr unsigned           as_unsigned(int c) noexcept { return c; }
-ATOMIC_QUEUE_SINLINE constexpr unsigned long long as_unsigned(unsigned long long c) noexcept { return c; }
-ATOMIC_QUEUE_SINLINE constexpr unsigned long long as_unsigned(long long c) noexcept { return c; }
+ATOMIC_QUEUE_SINLINE constexpr unsigned as_unsigned(unsigned c) noexcept {
+  return c;
+}
+ATOMIC_QUEUE_SINLINE constexpr unsigned as_unsigned(int c) noexcept {
+  return c;
+}
+ATOMIC_QUEUE_SINLINE constexpr unsigned long long as_unsigned(
+    unsigned long long c) noexcept {
+  return c;
+}
+ATOMIC_QUEUE_SINLINE constexpr unsigned long long as_unsigned(
+    long long c) noexcept {
+  return c;
+}
 
-// Do not allow integral promotion, numeric conversions or any other conversions for arguments of as_signed and as_unsigned.
-template<typename T> T as_signed(T) = delete;
-template<typename T> T as_unsigned(T) = delete;
+// Do not allow integral promotion, numeric conversions or any other conversions
+// for arguments of as_signed and as_unsigned.
+template <typename T>
+T as_signed(T) = delete;
+template <typename T>
+T as_unsigned(T) = delete;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// std::min/max reference parameters may require spilling registers to stack in order to make the value addressable.
-// These take by value only, with no implicit conversions.
-template<typename T> ATOMIC_QUEUE_SINLINE constexpr T min_value(T a, T b) noexcept { return b < a ? b : a; }
-template<typename T> ATOMIC_QUEUE_SINLINE constexpr T max_value(T a, T b) noexcept { return a < b ? b : a; }
+// std::min/max reference parameters may require spilling registers to stack in
+// order to make the value addressable. These take by value only, with no
+// implicit conversions.
+template <typename T>
+ATOMIC_QUEUE_SINLINE constexpr T min_value(T a, T b) noexcept {
+  return b < a ? b : a;
+}
+template <typename T>
+ATOMIC_QUEUE_SINLINE constexpr T max_value(T a, T b) noexcept {
+  return a < b ? b : a;
+}
 
 // Let the caller resolve any ambiguity.
-template<typename T, typename U> T min_value(T, U) = delete;
-template<typename T, typename U> T max_value(T, U) = delete;
+template <typename T, typename U>
+T min_value(T, U) = delete;
+template <typename T, typename U>
+T max_value(T, U) = delete;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<typename T>
+template <typename T>
 ATOMIC_QUEUE_SINLINE constexpr bool is_suitably_aligned(T* p) noexcept {
-    return !(reinterpret_cast<std::uintptr_t>(p) % alignof(T));
+  return !(reinterpret_cast<std::uintptr_t>(p) % alignof(T));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct NoContext {
-    template<typename... Args>
-    ATOMIC_QUEUE_INLINE constexpr NoContext(Args&&...) noexcept {}
+  template <typename... Args>
+  ATOMIC_QUEUE_INLINE constexpr NoContext(Args&&...) noexcept {}
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-} // namespace atomic_queue
+}  // namespace atomic_queue
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // ATOMIC_QUEUE_DEFS_H_INCLUDED
+#endif  // ATOMIC_QUEUE_DEFS_H_INCLUDED
