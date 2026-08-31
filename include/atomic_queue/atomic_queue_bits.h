@@ -49,14 +49,16 @@ struct GetIndexShuffleBits {
 
 template <unsigned N_BITS>
 struct IndexBits {
-  enum : unsigned {
-    mask_elem_idx = ~(~0u << N_BITS),
-    mask_line_idx = mask_elem_idx << N_BITS,
-    mask_hi = ~0u << (2 * N_BITS),
-    count = N_BITS,
-    count2 = N_BITS << 8 | N_BITS,
-  };
+  static constexpr unsigned count = N_BITS;
+  static constexpr unsigned count2 = (N_BITS << 8) | N_BITS;
+  static constexpr unsigned mask_elem_idx =
+      (N_BITS == 0) ? 0u : ~(~0u << N_BITS);
+  static constexpr unsigned mask_line_idx = mask_elem_idx << N_BITS;
+  static constexpr unsigned mask_hi =
+      (2 * N_BITS >= sizeof(unsigned) * 8) ? 0u : (~0u << (2 * N_BITS));
 };
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct RemapXor {
   // Each step depends on the previous, a serial chain of ~6 instructions, ~6
@@ -135,9 +137,11 @@ struct RemapBmi {
 };
 #endif  // __BMI__
 
-template <typename Remap>
-struct Remap0 : Remap {
-  using Remap::remap;
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template <typename RemapStrategy>
+struct Remap0 : RemapStrategy {
+  using RemapStrategy::remap;
 
   ATOMIC_QUEUE_SINLINE constexpr unsigned remap(unsigned index, unsigned size,
                                                 IndexBits<0>) noexcept {
@@ -155,7 +159,7 @@ struct Remap0 : Remap {
   }
 };
 
-#ifdef ATOMIC_QUEUE_REMAP
+#if defined(ATOMIC_QUEUE_REMAP)
 // Defining ATOMIC_QUEUE_REMAP overrides the default remapper.
 using Remap = Remap0<ATOMIC_QUEUE_REMAP>;
 #elif defined(__BMI__)
@@ -170,50 +174,12 @@ ATOMIC_QUEUE_SINLINE constexpr unsigned remap(unsigned index, unsigned size,
   return Remap::remap(index, size, b);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Implement a "bit-twiddling hack" for finding the next power of 2 in either 32
-// bits or 64 bits in C++11 compatible constexpr functions. The library no
-// longer maintains C++11 compatibility.
-
-// "Runtime" version for 32 bits
-// --a;
-// a |= a >> 1;
-// a |= a >> 2;
-// a |= a >> 4;
-// a |= a >> 8;
-// a |= a >> 16;
-// ++a;
-
-template <typename T>
-ATOMIC_QUEUE_SINLINE constexpr T decrement(T x) noexcept {
-  return x - 1;
-}
-
-template <typename T>
-ATOMIC_QUEUE_SINLINE constexpr T increment(T x) noexcept {
-  return x + 1;
-}
-
-template <typename T>
-ATOMIC_QUEUE_SINLINE constexpr T or_equal(T x, unsigned u) noexcept {
-  return x | x >> u;
-}
-
-template <typename T, typename... Args>
-ATOMIC_QUEUE_SINLINE constexpr T or_equal(T x, unsigned u,
-                                          Args... rest) noexcept {
-  return or_equal(or_equal(x, u), rest...);
-}
-
-ATOMIC_QUEUE_SINLINE constexpr uint32_t round_up_to_power_of_2(
-    uint32_t a) noexcept {
-  return increment(or_equal(decrement(a), 1, 2, 4, 8, 16));
-}
-
-ATOMIC_QUEUE_SINLINE constexpr uint64_t round_up_to_power_of_2(
-    uint64_t a) noexcept {
-  return increment(or_equal(decrement(a), 1, 2, 4, 8, 16, 32));
+template <std::unsigned_integral T>
+[[nodiscard]] ATOMIC_QUEUE_SINLINE constexpr T round_up_to_power_of_2(
+    T a) noexcept {
+  return (a == 0) ? T{0} : std::bit_ceil(a);
 }
 
 }  // namespace atomic_queue::details
