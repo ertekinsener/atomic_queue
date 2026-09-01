@@ -1,0 +1,37 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+autonumber
+
+actor "Producer (Thread A)" as P
+participant "AtomicQueueCommon" as Q
+actor "Consumer (Thread B)" as C
+
+== PUSH (MPMC) ==
+P -> Q : push(element)
+activate Q
+Q -> Q : head = head_.fetch_add(1)
+note right of Q: Indeks remapping uygulanır\nidx = remap(head)
+Q -> Q : do_push(element, idx)
+loop CAS bekleyişi (State::EMPTY -> State::STORING)
+  Q -> Q : spin_loop_pause()
+end
+Q -> Q : elements[idx] = move(element)
+Q -> Q : state[idx].store(State::STORED, Release)
+Q --> P : void
+deactivate Q
+
+== POP (MPMC) ==
+C -> Q : pop()
+activate Q
+Q -> Q : tail = tail_.fetch_add(1)
+note right of Q: Indeks remapping uygulanır\nidx = remap(tail)
+Q -> Q : do_pop(idx)
+loop CAS bekleyişi (State::STORED -> State::LOADING)
+  Q -> Q : spin_loop_pause()
+end
+Q -> Q : elem = move(elements[idx])
+Q -> Q : state[idx].store(State::EMPTY, Release)
+Q --> C : elem
+deactivate Q
+@enduml

@@ -1,0 +1,84 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam monochrome true
+skinparam shadowing false
+
+package "atomic_queue::details" {
+  
+  class "GetCacheLineIndexBits<size_t ElementsPerCacheLine>" as GetCacheLineIndexBits <<struct>> {
+    + {static} int value
+  }
+
+  class "GetIndexShuffleBits<bool MinimizeContention, unsigned ArraySize, size_t ElementsPerCacheLine>" as GetIndexShuffleBits <<struct>> {
+    + {static} int value
+  }
+
+  class "IndexBits<unsigned N_BITS>" as IndexBits <<struct>> {
+    + {static} unsigned count
+    + {static} unsigned count2
+    + {static} unsigned mask_elem_idx
+    + {static} unsigned mask_line_idx
+    + {static} unsigned mask_hi
+  }
+
+  interface "RemapStrategy" as RemapStrategy <<concept>>
+
+  class RemapXor <<struct>> {
+    + remap(index: unsigned, b: B): unsigned
+    + remap(index: unsigned, size: unsigned, b: B): unsigned
+  }
+
+  class RemapAnd <<struct>> {
+    + remap(index: unsigned, size: unsigned, b: B): unsigned
+    + remap(index: unsigned, b: B): unsigned
+  }
+
+  class RemapBmi <<struct>> {
+    + remap(index: unsigned, size: unsigned, b: B): unsigned
+    + remap(index: unsigned, b: B): unsigned
+  }
+
+  class "Remap0<typename RemapStrategy>" as Remap0 <<struct>> {
+    + remap(index: unsigned, size: unsigned, IndexBits<0>): unsigned
+    + remap(index: unsigned, IndexBits<0>): unsigned
+    + operator()(bits: B, a...: A): auto
+  }
+
+  Remap0 --|> RemapStrategy
+  RemapXor ..|> RemapStrategy
+  RemapAnd ..|> RemapStrategy
+  RemapBmi ..|> RemapStrategy
+}
+
+package "atomic_queue" {
+  
+  enum State <<uint8_t>> {
+    EMPTY = 0
+    STORED = 1
+    STORING = 2
+    LOADING = 4
+  }
+
+  abstract class "AtomicQueueCommon<typename Derived>" as AtomicQueueCommon {
+    # head_ : std::atomic<unsigned>
+    # tail_ : std::atomic<unsigned>
+    --
+    # AtomicQueueCommon()
+    # swap(b: AtomicQueueCommon&) : void
+    # do_pop(elements: atomic<T>*, index: unsigned) : T
+    # do_push(element: T, elements: atomic<T>*, index: unsigned) : void
+    # do_pop(states: atomic<State>*, elements: T*, index: unsigned) : T
+    # do_push(element: U&&, states: atomic<State>*, elements: T*, index: unsigned) : void
+    --
+    + try_push(this self, element: T&&) : bool
+    + try_pop(this self, element: T&) : bool
+    + push(this self, element: T&&) : void
+    + pop(this self) : auto
+    + was_empty(this self) : bool
+    + was_full(this self) : bool
+    + was_size(this self) : unsigned
+    + capacity(this self) : unsigned
+    + {static} is_spsc() : bool
+  }
+}
+@enduml

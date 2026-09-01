@@ -1,0 +1,29 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+
+[*] --> EMPTY : Başlangıç / destroy_n
+
+state EMPTY {
+  EMPTY : Yuva boş ve veri yazılabilir
+}
+
+state STORING {
+  STORING : Producer veriyi yazıyor (CAS ile kilitlendi)
+}
+
+state STORED {
+  STORED : Veri hazır, tüketilebilir
+}
+
+state LOADING {
+  LOADING : Consumer veriyi okuyor (CAS ile kilitlendi)
+}
+
+EMPTY --> STORING : do_push() [CAS State::EMPTY -> State::STORING]
+STORING --> STORED : elements[idx] = move(val)\nstate.store(State::STORED, Release)
+
+STORED --> LOADING : do_pop() [CAS State::STORED -> State::LOADING]
+LOADING --> EMPTY : val = move(elements[idx])\nstate.store(State::EMPTY, Release)
+
+@enduml
